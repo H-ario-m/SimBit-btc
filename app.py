@@ -152,26 +152,24 @@ def fmt_score(value: float) -> str:
 
 
 def render_countdown(seconds_left: int) -> None:
-    components.html(
-        f"""
-<div style="padding:6px 10px;border:1px solid #243249;border-radius:8px;background:#111a2b;color:#e8eefc;font-size:12px;">
-  Next auto-check in <span id="timer" style="font-weight:700;">--:--</span>
-</div>
-<script>
-let remaining = {max(0, int(seconds_left))};
-const timerEl = document.getElementById("timer");
-function tick() {{
-  const m = Math.floor(remaining / 60).toString().padStart(2, "0");
-  const s = Math.floor(remaining % 60).toString().padStart(2, "0");
-  timerEl.textContent = `${{m}}:${{s}}`;
-  if (remaining > 0) remaining -= 1;
-}}
-tick();
-setInterval(tick, 1000);
-</script>
-""",
-        height=44,
-    )
+    html_code = f"""
+    <div style="padding:6px 10px;border:1px solid #243249;border-radius:8px;background:#111a2b;color:#e8eefc;font-size:12px;font-family:sans-serif;">
+      Next auto-check in <span id="timer" style="font-weight:700;">--:--</span>
+    </div>
+    <script>
+    let remaining = {max(0, int(seconds_left))};
+    const timerEl = document.getElementById("timer");
+    function tick() {{
+      const m = Math.floor(remaining / 60).toString().padStart(2, "0");
+      const s = Math.floor(remaining % 60).toString().padStart(2, "0");
+      timerEl.textContent = `${{m}}:${{s}}`;
+      if (remaining > 0) remaining -= 1;
+    }}
+    tick();
+    setInterval(tick, 1000);
+    </script>
+    """
+    st.html(html_code)
 
 
 def _safe_window(series: pd.Series, train_window: int = 500) -> tuple[pd.Series, pd.Series, int]:
@@ -543,7 +541,7 @@ with dleft:
         xaxis_rangeslider_visible=False,
         margin={"l": 18, "r": 18, "t": 24, "b": 18},
     )
-    st.plotly_chart(day_fig, width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(day_fig, use_container_width=True, config={"displayModeBar": False})
 
 with dright:
     st.markdown('<div class="section-title">Actions and Parameters</div>', unsafe_allow_html=True)
@@ -628,7 +626,7 @@ if has_backtest:
             )
         st.plotly_chart(
             build_backtest_chart(merged_bt, bars_to_show=bars_to_show),
-            width="stretch",
+            use_container_width=True,
             config={"displayModeBar": False},
         )
 
@@ -646,7 +644,7 @@ if has_backtest:
 
     st.markdown('<div class="section-title">Backtest Full History Table</div>', unsafe_allow_html=True)
     st.markdown('<div class="small-table">', unsafe_allow_html=True)
-    st.dataframe(hist.style.map(_hit_style, subset=["Hit"]), width="stretch", hide_index=True, height=420)
+    st.dataframe(hist.style.map(_hit_style, subset=["Hit"]), use_container_width=True, hide_index=True, height=420)
     st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.info(f"No {backtest_path.name} found. Run backtest from the Actions panel.")
@@ -684,9 +682,9 @@ if not live_df.empty:
         return ""
 
     if "Result" in display_df.columns:
-        st.dataframe(display_df[available_cols].style.map(_result_style, subset=["Result"]), width="stretch", hide_index=True)
+        st.dataframe(display_df[available_cols].style.map(_result_style, subset=["Result"]), use_container_width=True, hide_index=True)
     else:
-        st.dataframe(display_df[available_cols], width="stretch", hide_index=True)
+        st.dataframe(display_df[available_cols], use_container_width=True, hide_index=True)
 else:
     st.info("No live predictions logged yet.")
 st.markdown("</div>", unsafe_allow_html=True)

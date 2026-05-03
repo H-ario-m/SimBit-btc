@@ -194,13 +194,15 @@ def update_actual_price(target_time: str, actual_price: float) -> None:
     if _is_postgres():
         with _get_pg_conn() as conn:
             with conn.cursor() as cur:
+                # Use timestamp casting for robust matching in PostgreSQL
                 cur.execute(
                     """
                     UPDATE predictions
                     SET actual_price = %s
-                    WHERE target_time = %s AND actual_price IS NULL
+                    WHERE (target_time = %s OR target_time::timestamp = %s::timestamp)
+                      AND actual_price IS NULL
                     """,
-                    (actual_price, n_target),
+                    (actual_price, n_target, n_target),
                 )
     else:
         with _get_sqlite_conn() as conn:
