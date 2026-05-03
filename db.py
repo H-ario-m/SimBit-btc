@@ -162,7 +162,7 @@ def save_prediction(
     current_price: float,
     profile: str = "precision",
 ) -> None:
-    """Save a new live prediction to the database."""
+    """Save a new live prediction to the database, removing any existing duplicate target_time."""
     n_fetched = _normalize_time(fetched_at)
     n_target = _normalize_time(target_time)
     print(f"[db] Saving prediction for target_time: {n_target}")
@@ -170,6 +170,11 @@ def save_prediction(
     if _is_postgres():
         with _get_pg_conn() as conn:
             with conn.cursor() as cur:
+                # Remove duplicate
+                cur.execute(
+                    "DELETE FROM predictions WHERE (target_time = %s OR target_time::timestamp = %s::timestamp) AND profile = %s",
+                    (n_target, n_target, profile)
+                )
                 cur.execute(
                     """
                     INSERT INTO predictions (fetched_at, target_time, low_95, high_95, current_price, profile)
@@ -179,6 +184,11 @@ def save_prediction(
                 )
     else:
         with _get_sqlite_conn() as conn:
+            # Remove duplicate
+            conn.execute(
+                "DELETE FROM predictions WHERE target_time = ? AND profile = ?",
+                (n_target, profile)
+            )
             conn.execute(
                 """
                 INSERT INTO predictions (fetched_at, target_time, low_95, high_95, current_price, profile)

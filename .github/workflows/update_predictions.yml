@@ -1,0 +1,33 @@
+name: Update Live Predictions
+
+on:
+  schedule:
+    # Run at minute 2 of every hour (e.g., 14:02, 15:02 UTC)
+    # This ensures the previous hour's candle has fully closed on Binance
+    - cron: '2 * * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  run-prediction:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run prediction and update database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python cron_job.py

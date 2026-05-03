@@ -160,10 +160,15 @@ def render_countdown(seconds_left: int) -> None:
     let remaining = {max(0, int(seconds_left))};
     const timerEl = document.getElementById("timer");
     function tick() {{
+      if (remaining <= 0) {{
+        timerEl.textContent = "00:00";
+        window.parent.location.reload();
+        return;
+      }}
       const m = Math.floor(remaining / 60).toString().padStart(2, "0");
       const s = Math.floor(remaining % 60).toString().padStart(2, "0");
       timerEl.textContent = `${{m}}:${{s}}`;
-      if (remaining > 0) remaining -= 1;
+      remaining -= 1;
     }}
     tick();
     setInterval(tick, 1000);
