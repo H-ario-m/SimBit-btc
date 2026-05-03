@@ -145,6 +145,15 @@ def init_db() -> None:
                 conn.execute("ALTER TABLE predictions ADD COLUMN profile TEXT DEFAULT 'unknown'")
 
 
+def _normalize_time(time_str: str) -> str:
+    """Standardize time strings to a consistent ISO format without timezone offset for string matching."""
+    try:
+        dt = pd.to_datetime(time_str)
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    except Exception:
+        return time_str
+
+
 def save_prediction(
     fetched_at: str,
     target_time: str,
@@ -154,6 +163,9 @@ def save_prediction(
     profile: str = "precision",
 ) -> None:
     """Save a new live prediction to the database."""
+    n_fetched = _normalize_time(fetched_at)
+    n_target = _normalize_time(target_time)
+    
     if _is_postgres():
         with _get_pg_conn() as conn:
             with conn.cursor() as cur:
@@ -162,7 +174,7 @@ def save_prediction(
                     INSERT INTO predictions (fetched_at, target_time, low_95, high_95, current_price, profile)
                     VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                    (fetched_at, target_time, low_95, high_95, current_price, profile),
+                    (n_fetched, n_target, low_95, high_95, current_price, profile),
                 )
     else:
         with _get_sqlite_conn() as conn:
@@ -171,12 +183,14 @@ def save_prediction(
                 INSERT INTO predictions (fetched_at, target_time, low_95, high_95, current_price, profile)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (fetched_at, target_time, low_95, high_95, current_price, profile),
+                (n_fetched, n_target, low_95, high_95, current_price, profile),
             )
 
 
 def update_actual_price(target_time: str, actual_price: float) -> None:
     """Update the actual price for a target_time (fills NULL rows only)."""
+    n_target = _normalize_time(target_time)
+    
     if _is_postgres():
         with _get_pg_conn() as conn:
             with conn.cursor() as cur:
@@ -186,7 +200,7 @@ def update_actual_price(target_time: str, actual_price: float) -> None:
                     SET actual_price = %s
                     WHERE target_time = %s AND actual_price IS NULL
                     """,
-                    (actual_price, target_time),
+                    (actual_price, n_target),
                 )
     else:
         with _get_sqlite_conn() as conn:
@@ -196,7 +210,7 @@ def update_actual_price(target_time: str, actual_price: float) -> None:
                 SET actual_price = ?
                 WHERE target_time = ? AND actual_price IS NULL
                 """,
-                (actual_price, target_time),
+                (actual_price, n_target),
             )
 
 
@@ -232,7 +246,7 @@ def get_prediction_history_df(limit: int = 50) -> pd.DataFrame:
             if pd.isna(row["actual_price"]) or row["actual_price"] == 0:
                 return "Pending"
             is_hit = row["low_95"] <= row["actual_price"] <= row["high_95"]
-            return "✅ HIT" if is_hit else "❌ MISS"
+            return "HIT" if is_hit else "MISS"
             
         df["Result"] = df.apply(check_hit, axis=1)
         

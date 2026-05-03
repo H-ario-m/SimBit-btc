@@ -666,13 +666,21 @@ if not live_df.empty:
     for col, new_name in [("current_price", "Entry Price"), ("low_95", "Lower Band"), ("high_95", "Upper Band"), ("actual_price", "Actual Price")]:
         if col in display_df.columns:
             display_df[new_name] = display_df[col].apply(lambda x: f"${x:,.2f}" if x and x > 0 else "---")
-            
+    
+    # Summary Metrics
+    if "Result" in display_df.columns:
+        valid_rows = display_df[display_df["Result"] != "Pending"]
+        if len(valid_rows) > 0:
+            hits = (valid_rows["Result"] == "HIT").sum()
+            acc = (hits / len(valid_rows)) * 100
+            st.metric("Live Accuracy", f"{acc:.1f}%")
+
     cols_to_show = ["Target Time", "Entry Price", "Lower Band", "Upper Band", "Actual Price", "Result", "profile"]
     available_cols = [c for c in cols_to_show if c in display_df.columns]
     
     def _result_style(val):
-        if val == "✅ HIT": return "background-color: rgba(34, 197, 94, 0.1); color: #22c55e; font-weight: bold;"
-        if val == "❌ MISS": return "background-color: rgba(239, 68, 68, 0.1); color: #ef4444; font-weight: bold;"
+        if val == "HIT": return "background-color: rgba(34, 197, 94, 0.1); color: #22c55e; font-weight: bold;"
+        if val == "MISS": return "background-color: rgba(239, 68, 68, 0.1); color: #ef4444; font-weight: bold;"
         return ""
 
     if "Result" in display_df.columns:
