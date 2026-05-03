@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Venv
+venv/
+.venv/
+env/
+.env/
+
+# Streamlit secrets (never commit real secrets!)
+.streamlit/secrets.toml
+
+# Local DB (not needed in git — cloud uses PostgreSQL)
+predictions.db
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db

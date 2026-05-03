@@ -1,0 +1,13 @@
+streamlit>=1.35.0
+pandas
+numpy
+requests
+scipy
+arch>=6.0.0
+plotly
+streamlit-autorefresh
+tqdm
+matplotlib
+lightgbm
+ta
+psycopg2-binary
