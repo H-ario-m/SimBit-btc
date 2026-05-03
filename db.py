@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Generator
 
+import pandas as pd
 try:
     import psycopg2
     import psycopg2.extras
