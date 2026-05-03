@@ -40,14 +40,13 @@ def _get_database_url() -> str | None:
     """Retrieve DATABASE_URL from Streamlit secrets or environment variable."""
     if _STREAMLIT_AVAILABLE:
         try:
-            # Try flat key first (most common in Streamlit secrets)
-            url = st.secrets.get("DATABASE_URL", None)
-            if url:
-                return url
+            # Try flat key first
+            if "DATABASE_URL" in st.secrets:
+                return st.secrets["DATABASE_URL"]
             # Try nested [database] table style
             db_section = st.secrets.get("database", {})
-            if isinstance(db_section, dict):
-                return db_section.get("DATABASE_URL", None)
+            if isinstance(db_section, dict) and "DATABASE_URL" in db_section:
+                return db_section["DATABASE_URL"]
         except Exception:
             pass
     return os.environ.get("DATABASE_URL", None)
