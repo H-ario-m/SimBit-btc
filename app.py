@@ -24,7 +24,11 @@ from lgbm_model import (
 )
 import db
 
-db.init_db()
+try:
+    db.init_db()
+except Exception as _db_err:
+    import sys
+    print(f"[app] DB init failed, predictions won't be saved: {_db_err}", file=sys.stderr)
 
 st.set_page_config(
     page_title="BTC Forecast Dashboard",
@@ -192,22 +196,25 @@ def load_hourly_bundle(profile: str) -> tuple[pd.DataFrame, dict, dict, int]:
         pred = run_live_prediction(pred_slice, n_sims=10_000, profile=profile)
         validation = run_previous_bar_validation(val_slice, train_window=tw, n_sims=3000, profile=profile)
         
-    # Database Logging
-    now_utc = pd.Timestamp.now(tz="UTC").isoformat().replace("+00:00", "Z")
-    target_time = (ohlc.index[-1] + pd.Timedelta(hours=1)).isoformat().replace("+00:00", "Z")
-    
-    db.save_prediction(
-        fetched_at=now_utc,
-        target_time=target_time,
-        low_95=pred["low_95"],
-        high_95=pred["high_95"],
-        current_price=pred["current_price"],
-        profile=profile
-    )
-    db.update_actual_price(
-        target_time=validation.get("actual_time", ""),
-        actual_price=validation.get("actual", 0.0)
-    )
+    # Database Logging — wrapped so DB errors never kill the dashboard
+    try:
+        now_utc = pd.Timestamp.now(tz="UTC").isoformat().replace("+00:00", "Z")
+        target_time = (ohlc.index[-1] + pd.Timedelta(hours=1)).isoformat().replace("+00:00", "Z")
+        db.save_prediction(
+            fetched_at=now_utc,
+            target_time=target_time,
+            low_95=pred["low_95"],
+            high_95=pred["high_95"],
+            current_price=pred["current_price"],
+            profile=profile
+        )
+        db.update_actual_price(
+            target_time=validation.get("actual_time", ""),
+            actual_price=validation.get("actual", 0.0)
+        )
+    except Exception as _db_err:
+        import sys
+        print(f"[app] DB write failed (non-fatal): {_db_err}", file=sys.stderr)
     
     return ohlc, pred, validation, tw
 

@@ -53,15 +53,33 @@ def _get_database_url() -> str | None:
     return os.environ.get("DATABASE_URL", None)
 
 
+_PG_WORKING: bool | None = None  # None = untested, True = ok, False = failed
+
+
 def _is_postgres() -> bool:
+    """Return True only if DATABASE_URL is set AND a connection is reachable."""
+    global _PG_WORKING
     url = _get_database_url()
-    return bool(url and _PG_AVAILABLE)
+    if not url or not _PG_AVAILABLE:
+        return False
+    if _PG_WORKING is not None:
+        return _PG_WORKING
+    # Test the connection once at startup
+    try:
+        conn = psycopg2.connect(url, connect_timeout=8)
+        conn.close()
+        _PG_WORKING = True
+    except Exception as e:
+        import sys
+        print(f"[db] PostgreSQL connection FAILED, falling back to SQLite: {e}", file=sys.stderr)
+        _PG_WORKING = False
+    return _PG_WORKING
 
 
 @contextmanager
 def _get_pg_conn() -> Generator:
     url = _get_database_url()
-    conn = psycopg2.connect(url)
+    conn = psycopg2.connect(url, connect_timeout=8)
     try:
         yield conn
         conn.commit()
