@@ -216,3 +216,23 @@ def get_recent_predictions(limit: int = 100) -> list[dict[str, Any]]:
                 (limit,),
             )
             return [dict(row) for row in cursor.fetchall()]
+
+
+def get_prediction_history_df(limit: int = 50) -> pd.DataFrame:
+    """Retrieve history as a pandas DataFrame with hit/miss calculated."""
+    preds = get_recent_predictions(limit)
+    if not preds:
+        return pd.DataFrame()
+    
+    df = pd.DataFrame(preds)
+    if "actual_price" in df.columns:
+        # Calculate Hit/Miss for rows that have an actual price
+        def check_hit(row):
+            if pd.isna(row["actual_price"]) or row["actual_price"] == 0:
+                return "Pending"
+            is_hit = row["low_95"] <= row["actual_price"] <= row["high_95"]
+            return "✅ HIT" if is_hit else "❌ MISS"
+            
+        df["Result"] = df.apply(check_hit, axis=1)
+        
+    return df

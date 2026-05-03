@@ -501,7 +501,7 @@ v2.markdown(
 
 st.plotly_chart(
     build_hourly_chart(hourly_ohlc, low_95=hourly_pred["low_95"], high_95=hourly_pred["high_95"]),
-    use_container_width=True,
+    width="stretch",
     config={"displayModeBar": False},
 )
 
@@ -650,3 +650,35 @@ if has_backtest:
     st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.info(f"No {backtest_path.name} found. Run backtest from the Actions panel.")
+
+# --- LIVE PREDICTION HISTORY ---
+st.markdown("---")
+st.markdown('<div class="section-title">Live Prediction History (Database)</div>', unsafe_allow_html=True)
+st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+st.caption("Tracking live performance stored in Supabase/SQLite.")
+
+live_df = db.get_prediction_history_df(limit=20)
+if not live_df.empty:
+    display_df = live_df.copy()
+    if "target_time" in display_df.columns:
+        display_df["Target Time"] = pd.to_datetime(display_df["target_time"]).dt.strftime("%H:%M UTC (%d %b)")
+    
+    for col, new_name in [("current_price", "Entry Price"), ("low_95", "Lower Band"), ("high_95", "Upper Band"), ("actual_price", "Actual Price")]:
+        if col in display_df.columns:
+            display_df[new_name] = display_df[col].apply(lambda x: f"${x:,.2f}" if x and x > 0 else "---")
+            
+    cols_to_show = ["Target Time", "Entry Price", "Lower Band", "Upper Band", "Actual Price", "Result", "profile"]
+    available_cols = [c for c in cols_to_show if c in display_df.columns]
+    
+    def _result_style(val):
+        if val == "✅ HIT": return "background-color: rgba(34, 197, 94, 0.1); color: #22c55e; font-weight: bold;"
+        if val == "❌ MISS": return "background-color: rgba(239, 68, 68, 0.1); color: #ef4444; font-weight: bold;"
+        return ""
+
+    if "Result" in display_df.columns:
+        st.dataframe(display_df[available_cols].style.map(_result_style, subset=["Result"]), width="stretch", hide_index=True)
+    else:
+        st.dataframe(display_df[available_cols], width="stretch", hide_index=True)
+else:
+    st.info("No live predictions logged yet.")
+st.markdown("</div>", unsafe_allow_html=True)
