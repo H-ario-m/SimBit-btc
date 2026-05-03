@@ -165,6 +165,7 @@ def save_prediction(
     """Save a new live prediction to the database."""
     n_fetched = _normalize_time(fetched_at)
     n_target = _normalize_time(target_time)
+    print(f"[db] Saving prediction for target_time: {n_target}")
     
     if _is_postgres():
         with _get_pg_conn() as conn:
@@ -190,6 +191,7 @@ def save_prediction(
 def update_actual_price(target_time: str, actual_price: float) -> None:
     """Update the actual price for a target_time (fills NULL rows only)."""
     n_target = _normalize_time(target_time)
+    print(f"[db] Attempting to update actual price for target_time: {n_target} to {actual_price}")
     
     if _is_postgres():
         with _get_pg_conn() as conn:
@@ -204,9 +206,11 @@ def update_actual_price(target_time: str, actual_price: float) -> None:
                     """,
                     (actual_price, n_target, n_target),
                 )
+                count = cur.rowcount
+                print(f"[db] Postgres update matched {count} rows.")
     else:
         with _get_sqlite_conn() as conn:
-            conn.execute(
+            cur = conn.execute(
                 """
                 UPDATE predictions
                 SET actual_price = ?
@@ -214,6 +218,7 @@ def update_actual_price(target_time: str, actual_price: float) -> None:
                 """,
                 (actual_price, n_target),
             )
+            print(f"[db] SQLite update matched {cur.rowcount} rows.")
 
 
 def get_recent_predictions(limit: int = 100) -> list[dict[str, Any]]:
