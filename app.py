@@ -543,7 +543,7 @@ with dleft:
         xaxis_rangeslider_visible=False,
         margin={"l": 18, "r": 18, "t": 24, "b": 18},
     )
-    st.plotly_chart(day_fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(day_fig, width="stretch", config={"displayModeBar": False})
 
 with dright:
     st.markdown('<div class="section-title">Actions and Parameters</div>', unsafe_allow_html=True)
@@ -628,7 +628,7 @@ if has_backtest:
             )
         st.plotly_chart(
             build_backtest_chart(merged_bt, bars_to_show=bars_to_show),
-            use_container_width=True,
+            width="stretch",
             config={"displayModeBar": False},
         )
 
@@ -646,7 +646,7 @@ if has_backtest:
 
     st.markdown('<div class="section-title">Backtest Full History Table</div>', unsafe_allow_html=True)
     st.markdown('<div class="small-table">', unsafe_allow_html=True)
-    st.dataframe(hist.style.map(_hit_style, subset=["Hit"]), use_container_width=True, hide_index=True, height=420)
+    st.dataframe(hist.style.map(_hit_style, subset=["Hit"]), width="stretch", hide_index=True, height=420)
     st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.info(f"No {backtest_path.name} found. Run backtest from the Actions panel.")

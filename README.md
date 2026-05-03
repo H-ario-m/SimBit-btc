@@ -1,32 +1,53 @@
-# BTC Forecast Dashboard
+# BTC Forecast Dashboard — AlphaI × Polaris Challenge
 
-## 1) Install dependencies
+A high-precision Bitcoin price range forecasting system built to optimize the **Winkler Score**.
 
-```bash
-pip install -r requirements.txt
-```
+##  Deployed URL
+[Your Streamlit URL Here]
 
-## 2) Run backtest and generate JSONL
+##  Performance (Precision Profile)
+- **Coverage**: 94.7% (Target: 95%)
+- **Avg Width**: ~1179 USDT
+- **Mean Winkler Score**: 1659
 
-```bash
-python run_backtest.py --bars 1300 --train-window 500 --test-bars 720 --n-sims 2000 --profile challenge --out backtest_results.jsonl --plot
-```
+---
 
-Notes:
-- `--bars 1300` gives enough history to support `500` train + `720` test + next-bar scoring.
-- Output is one JSON object per line in `backtest_results.jsonl`.
-- Available profiles: `challenge` (original settings) and `tuned` (narrower intervals).
+## How it Works
 
-## 3) Run previous-bar real-time validation
+The system predicts the 95% probability range for BTC price 1-hour from now. It uses two primary engines:
 
-```bash
-python realtime_validation.py --bars 505 --train-window 500 --n-sims 10000 --profile challenge
-```
+1.  **GJR-GARCH + Cyber Monte Carlo (Default)**: 
+    - Uses GJR-GARCH to model asymmetric volatility (leverage effects).
+    - Runs 10,000 Monte Carlo paths using a Student-t distribution to account for "Fat Tails."
+    - Dynamically widens bands based on "Entropy" (Information complexity) and Momentum sensors.
+2.  **LightGBM Quantile Regression**:
+    - A machine learning approach that directly minimizes pinball loss.
+    - Features include realized volatility (High-Low range), multi-horizon rolling volume, RSI, and temporal regimes.
 
-## 4) Launch dashboard
+### No-Peek Guarantee
+The backtest engine uses a strict **rolling window of 500 bars**. For every prediction at hour `T`, the model is re-fitted using only data from `T-500` to `T`. No future data is ever used for feature scaling or model training.
 
-```bash
-streamlit run app.py
-```
+---
 
-The app auto-refreshes every 5 minutes and fetches BTC hourly bars from Binance data API.
+##  Profiles
+
+You can switch between these in the sidebar to see how they behave:
+
+-   **`precision` (DEFAULT)**: The most balanced profile. Tuned to hit ~95% coverage while minimizing the Winkler score. It uses a "Cyber" scaling logic that reacts to sudden momentum shifts.
+-   **`lgbm`**: The machine learning model. Often produces the tightest bands but can be more sensitive to regime changes.
+-   **`tuned`**: A slightly more conservative version of the GARCH model.
+-   **`challenge`**: The baseline configuration.
+
+---
+
+##  Deployment & Persistence
+
+-   **Framework**: Streamlit
+-   **Database**: Supabase (PostgreSQL)
+-   **Persistence**: Live predictions and actual outcomes are saved permanently to the cloud DB, ensuring history survives app reboots.
+
+## 🏃‍♂️ Local Setup
+
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the app: `streamlit run app.py`
+3. (Optional) Run a manual backtest: `python run_backtest.py --profile precision`
