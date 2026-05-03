@@ -391,29 +391,15 @@ st.markdown('<div class="main-title">BTC Forecast Dashboard</div>', unsafe_allow
 profile = st.sidebar.selectbox("Profile", ["precision", "lgbm", "tuned", "challenge"], index=0)
 manual_refresh = st.sidebar.button("Run Simulation Now", use_container_width=True)
 st.sidebar.markdown(f"Auto-check interval: {AUTO_REFRESH_SECONDS // 60} minutes")
-st.sidebar.markdown(f"Last app run: {pd.Timestamp.now(tz='UTC').strftime('%Y-%m-%d %H:%M:%S UTC')}")
+st.sidebar.markdown(f"Last app run: {pd.Timestamp.now(tz='Asia/Kolkata').strftime('%Y-%m-%d %H:%M:%S IST')}")
 
 with st.spinner("Running simulation"):
     if manual_refresh:
-        hourly_ohlc = fetch_btc_ohlc(n_bars=620, interval="1h")
-        hourly_pred_slice, hourly_val_slice, hourly_tw = _safe_window(hourly_ohlc["close"], train_window=500)
+        load_hourly_bundle.clear()
+        load_daily_bundle.clear()
         
-        daily_ohlc = fetch_btc_ohlc(n_bars=560, interval="1d")
-        daily_pred_slice, daily_val_slice, daily_tw = _safe_window(daily_ohlc["close"], train_window=500)
-        
-        if profile == "lgbm":
-            hourly_pred = run_lgbm_live_prediction(hourly_ohlc.iloc[-502:], train_window=hourly_tw)
-            hourly_val = run_lgbm_previous_bar_validation(hourly_ohlc.iloc[-503:], train_window=hourly_tw)
-            daily_pred = run_lgbm_live_prediction(daily_ohlc.iloc[-502:], train_window=daily_tw)
-            daily_val = run_lgbm_previous_bar_validation(daily_ohlc.iloc[-503:], train_window=daily_tw)
-        else:
-            hourly_pred = run_live_prediction(hourly_pred_slice, n_sims=10_000, profile=profile)
-            hourly_val = run_previous_bar_validation(hourly_val_slice, train_window=hourly_tw, n_sims=3000, profile=profile)
-            daily_pred = run_live_prediction(daily_pred_slice, n_sims=7000, profile=profile)
-            daily_val = run_previous_bar_validation(daily_val_slice, train_window=daily_tw, n_sims=2000, profile=profile)
-    else:
-        hourly_ohlc, hourly_pred, hourly_val, hourly_tw = load_hourly_bundle(profile)
-        daily_ohlc, daily_pred, daily_val, daily_tw = load_daily_bundle(profile)
+    hourly_ohlc, hourly_pred, hourly_val, hourly_tw = load_hourly_bundle(profile)
+    daily_ohlc, daily_pred, daily_val, daily_tw = load_daily_bundle(profile)
 
 backtest_path = Path(__file__).parent / f"backtest_results_{profile}.jsonl"
 bt = load_backtest_metrics(backtest_path)
@@ -631,7 +617,7 @@ if has_backtest:
         )
 
     hist = bt.rows.sort_values("timestamp", ascending=False).copy()
-    hist["Timestamp"] = hist["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+    hist["Timestamp"] = hist["timestamp"].dt.tz_convert("Asia/Kolkata").dt.strftime("%Y-%m-%d %H:%M:%S IST")
     hist["Actual Price"] = hist["actual"].map(fmt_usd)
     hist["Low 95%"] = hist["low_95"].map(fmt_usd)
     hist["High 95%"] = hist["high_95"].map(fmt_usd)
@@ -659,7 +645,7 @@ live_df = db.get_prediction_history_df(limit=20)
 if not live_df.empty:
     display_df = live_df.copy()
     if "target_time" in display_df.columns:
-        display_df["Target Time"] = pd.to_datetime(display_df["target_time"]).dt.strftime("%H:%M UTC (%d %b)")
+        display_df["Target Time"] = pd.to_datetime(display_df["target_time"], utc=True).dt.tz_convert("Asia/Kolkata").dt.strftime("%H:%M IST (%d %b)")
     
     for col, new_name in [("current_price", "Entry Price"), ("low_95", "Lower Band"), ("high_95", "Upper Band"), ("actual_price", "Actual Price")]:
         if col in display_df.columns:
